@@ -1,5 +1,7 @@
 package rbtree
 
+import "golang.org/x/exp/constraints"
+
 // An implmentation of the left-leaning red-black 2-3 binary search tree (LLRB BST).
 //
 // References:
@@ -14,38 +16,37 @@ const (
 type color bool
 
 type (
-	// TODO: Make generic and use comparator
-	Key   int
-	Value interface{}
+	Key   constraints.Ordered
+	Value any
 )
 
-type Node struct {
-	key   Key
-	value Value
-	left  *Node
-	right *Node
+type Node[K Key, V Value] struct {
+	key   K
+	value V
+	left  *Node[K, V]
+	right *Node[K, V]
 	color color
 }
 
-func newNode(key Key, val Value, clr color) *Node {
-	return &Node{
+func newNode[K Key, V Value](key K, val V, clr color) *Node[K, V] {
+	return &Node[K, V]{
 		key:   key,
 		value: val,
 		color: clr,
 	}
 }
 
-type RedBlackBST struct {
-	root *Node
+type RedBlackBST[K Key, V Value] struct {
+	root *Node[K, V]
 }
 
-// New creates a new instance of a Left-Leaning Red-Black BST.
-func New() *RedBlackBST {
-	return &RedBlackBST{}
+// New creates an empty instance of a Left-Leaning Red-Black BST.
+func New[K Key, V Value]() *RedBlackBST[K, V] {
+	return &RedBlackBST[K, V]{}
 }
 
 // CompareTo returns > 0 if source is greater than target
-func CompareTo(source, target Key) int {
+func CompareTo[K Key](source, target K) int {
 	if source > target {
 		return 1
 	}
@@ -57,14 +58,14 @@ func CompareTo(source, target Key) int {
 }
 
 // Insert a new element
-func (t *RedBlackBST) Insert(key Key, val Value) {
+func (t *RedBlackBST[K, V]) Insert(key K, val V) {
 	t.root = t.insert(t.root, key, val)
 	t.root.color = COLOR_BLACK
 }
 
 // insert will recursively traverse down the tree and insert new node at leaf or
 // update the value if key exists, then fix by doing rotation or color flip
-func (t *RedBlackBST) insert(h *Node, key Key, val Value) *Node {
+func (t *RedBlackBST[K, V]) insert(h *Node[K, V], key K, val V) *Node[K, V] {
 	if h == nil {
 		h = newNode(key, val, COLOR_RED)
 		return h
@@ -94,12 +95,12 @@ func (t *RedBlackBST) insert(h *Node, key Key, val Value) *Node {
 	return h
 }
 
-// Search by key and returns value
-func (t *RedBlackBST) Search(key Key) Value {
+// Search by key and returns value, or the zero value of type V if not found
+func (t *RedBlackBST[K, V]) Search(key K) V {
 	return search(t.root, key)
 }
 
-func search(x *Node, key Key) Value {
+func search[K Key, V Value](x *Node[K, V], key K) V {
 	for x != nil {
 		c := CompareTo(key, x.key)
 		if c < 0 {
@@ -115,22 +116,23 @@ func search(x *Node, key Key) Value {
 		return x.value
 	}
 
-	return nil
+	// deference and return the zero value based on type
+	return *new(V)
 }
 
-func (t *RedBlackBST) Delete() {
+func (t *RedBlackBST[K, V]) Delete() {
 	// TODO
 }
 
 // utility functions on Node
-func (h *Node) IsRed() bool {
+func (h *Node[K, V]) IsRed() bool {
 	if h == nil {
 		return false
 	}
 	return bool(h.color)
 }
 
-func (h *Node) rotateLeft() *Node {
+func (h *Node[K, V]) rotateLeft() *Node[K, V] {
 	x := h.right
 	h.right = x.left
 	x.left = h
@@ -139,7 +141,7 @@ func (h *Node) rotateLeft() *Node {
 	return x
 }
 
-func (h *Node) rotateRight() *Node {
+func (h *Node[K, V]) rotateRight() *Node[K, V] {
 	x := h.left
 	h.left = x.right
 	x.right = h
@@ -148,7 +150,7 @@ func (h *Node) rotateRight() *Node {
 	return x
 }
 
-func (h *Node) flipColors() {
+func (h *Node[K, V]) flipColors() {
 	h.color = !h.color
 	h.left.color = !h.left.color
 	h.right.color = !h.right.color
