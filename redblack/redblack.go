@@ -19,16 +19,16 @@ type (
 	Value interface{}
 )
 
-type rbNode struct {
+type Node struct {
 	key   Key
 	value Value
-	left  *rbNode
-	right *rbNode
+	left  *Node
+	right *Node
 	color color
 }
 
-func newRBNode(key Key, val Value, clr color) *rbNode {
-	return &rbNode{
+func newNode(key Key, val Value, clr color) *Node {
+	return &Node{
 		key:   key,
 		value: val,
 		color: clr,
@@ -36,15 +36,14 @@ func newRBNode(key Key, val Value, clr color) *rbNode {
 }
 
 type RedBlackBST struct {
-	root *rbNode
-	size int
+	root *Node
 }
 
 func NewRedBlackBST() *RedBlackBST {
 	return &RedBlackBST{}
 }
 
-// CompareTo returns 1 if source is greater than target
+// CompareTo returns > 0 if source is greater than target
 func CompareTo(source, target Key) int {
 	if source > target {
 		return 1
@@ -56,18 +55,20 @@ func CompareTo(source, target Key) int {
 	return 0
 }
 
+// Insert a new node and ensure the root node remains black
 func (t *RedBlackBST) Insert(key Key, val Value) {
 	t.root = t.insert(t.root, key, val)
 	t.root.color = COLOR_BLACK
 }
 
-func (t *RedBlackBST) insert(h *rbNode, key Key, val Value) *rbNode {
+// insert will recursively traverse down the tree and insert new node at leaf or
+// update the value if key exists, then fix by doing rotation or color flip
+func (t *RedBlackBST) insert(h *Node, key Key, val Value) *Node {
 	if h == nil {
-		h = newRBNode(key, val, COLOR_RED)
+		h = newNode(key, val, COLOR_RED)
 		return h
 	}
 
-	// compare to key of node being inserted and traverse the tree based on result
 	c := CompareTo(key, h.key)
 	switch {
 	case c < 0:
@@ -75,18 +76,17 @@ func (t *RedBlackBST) insert(h *rbNode, key Key, val Value) *rbNode {
 	case c > 0:
 		h.right = t.insert(h.right, key, val)
 	default:
-		// if key already exists, then just update the value
 		h.value = val
 	}
 
-	// fix to ensure links lean left
-	if h.right.isRed() && !h.left.isRed() {
+	// fix height of tree and ensure red links lean left
+	if h.right.IsRed() && !h.left.IsRed() {
 		h = h.rotateLeft()
 	}
-	if h.left.isRed() && h.left.left.isRed() {
+	if h.left.IsRed() && h.left.left.IsRed() {
 		h = h.rotateRight()
 	}
-	if h.left.isRed() && h.right.isRed() {
+	if h.left.IsRed() && h.right.IsRed() {
 		h.flipColors()
 	}
 
@@ -98,16 +98,12 @@ func (t *RedBlackBST) Search() interface{} {
 	return nil
 }
 
-func (t *RedBlackBST) DeleteMin() {
-	// TODO
-}
-
 func (t *RedBlackBST) Delete() {
 	// TODO
 }
 
-// utility
-func (h *rbNode) isRed() bool {
+// utility functions on Node
+func (h *Node) IsRed() bool {
 	if h == nil {
 		return false
 	}
@@ -119,7 +115,7 @@ func (h *rbNode) isRed() bool {
 a   x    ->  h    c
    b c      a b
 */
-func (h *rbNode) rotateLeft() *rbNode {
+func (h *Node) rotateLeft() *Node {
 	x := h.right
 	h.right = x.left
 	x.left = h
@@ -133,7 +129,7 @@ func (h *rbNode) rotateLeft() *rbNode {
  x    c  ->   a   h
 a b              b c
 */
-func (h *rbNode) rotateRight() *rbNode {
+func (h *Node) rotateRight() *Node {
 	x := h.left
 	h.left = x.right
 	x.right = h
@@ -142,7 +138,7 @@ func (h *rbNode) rotateRight() *rbNode {
 	return h
 }
 
-func (h *rbNode) flipColors() {
+func (h *Node) flipColors() {
 	h.color = !h.color
 	h.left.color = !h.left.color
 	h.right.color = !h.right.color
