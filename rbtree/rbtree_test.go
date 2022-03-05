@@ -1,36 +1,61 @@
-package redblack
+package rbtree
 
 import (
 	"math"
 	"testing"
 )
 
-// WIP test for insert
-func TestInsert_ThreeNodes(t *testing.T) {
-	rb := NewRedBlackBST()
-	rb.Insert(1, "a")
-	rb.Insert(2, "b")
-	rb.Insert(3, "c")
-	rb.Insert(4, "d")
+func TestRedBlackBST_Insert(t *testing.T) {
+	t.Parallel()
 
-	assertEqual(t, "b", rb.root.value)
-	assertEqual(t, "a", rb.root.left.value)
-	assertEqual(t, "d", rb.root.right.value)
-	assertEqual(t, "c", rb.root.right.left.value)
+	m := []struct {
+		Key
+		Value
+	}{
+		{1, "a"},
+		{4, "d"},
+		{3, "c"},
+		{2, "b"},
+	}
 
+	tree := New()
+	for _, kv := range m {
+		tree.Insert(kv.Key, kv.Value)
+		validateTree(t, tree)
+	}
+}
+
+func TestRedBlackBST_Search(t *testing.T) {
+	t.Parallel()
+
+	m := []struct {
+		Key
+		Value
+	}{
+		{4, "d"},
+		{3, "c"},
+		{1, "a"},
+		{2, "b"},
+	}
+
+	tree := New()
+	for _, kv := range m {
+		tree.Insert(kv.Key, kv.Value)
+	}
+
+	for _, kv := range m {
+		got := tree.Search(Key(kv.Key))
+		assertEqual(t, kv.Value, got)
+	}
+}
+
+// Check validity of red-black binary search tree
+func validateTree(t *testing.T, rb *RedBlackBST) {
 	checkBST(t, rb)
 	checkBalancedLinks(t, rb)
 	checkSize(t, rb)
 	check23Tree(t, rb)
 }
-
-func assertEqual(t *testing.T, want, got interface{}) {
-	if want != got {
-		t.Errorf("want %v, got %v", want, got)
-	}
-}
-
-// Check validity of red-black binary search tree
 
 func checkSize(t *testing.T, rb *RedBlackBST) {
 	heights := map[Key]int{}
@@ -146,4 +171,10 @@ func is23Tree(x *Node) bool {
 	}
 
 	return is23Tree(x.left) && is23Tree(x.right)
+}
+
+func assertEqual(t *testing.T, want, got interface{}) {
+	if want != got {
+		t.Errorf("want %v, got %v", want, got)
+	}
 }

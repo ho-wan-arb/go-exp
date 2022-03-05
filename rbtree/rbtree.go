@@ -1,4 +1,4 @@
-package redblack
+package rbtree
 
 // An implmentation of the left-leaning red-black 2-3 binary search tree (LLRB BST).
 //
@@ -39,7 +39,8 @@ type RedBlackBST struct {
 	root *Node
 }
 
-func NewRedBlackBST() *RedBlackBST {
+// New creates a new instance of a Left-Leaning Red-Black BST.
+func New() *RedBlackBST {
 	return &RedBlackBST{}
 }
 
@@ -55,7 +56,7 @@ func CompareTo(source, target Key) int {
 	return 0
 }
 
-// Insert a new node and ensure the root node remains black
+// Insert a new element
 func (t *RedBlackBST) Insert(key Key, val Value) {
 	t.root = t.insert(t.root, key, val)
 	t.root.color = COLOR_BLACK
@@ -93,8 +94,27 @@ func (t *RedBlackBST) insert(h *Node, key Key, val Value) *Node {
 	return h
 }
 
-func (t *RedBlackBST) Search() interface{} {
-	// TODO
+// Search by key and returns value
+func (t *RedBlackBST) Search(key Key) Value {
+	return search(t.root, key)
+}
+
+func search(x *Node, key Key) Value {
+	for x != nil {
+		c := CompareTo(key, x.key)
+		if c < 0 {
+			x = x.left
+			continue
+		}
+
+		if c > 0 {
+			x = x.right
+			continue
+		}
+
+		return x.value
+	}
+
 	return nil
 }
 
@@ -110,11 +130,6 @@ func (h *Node) IsRed() bool {
 	return bool(h.color)
 }
 
-/*
- [h]           [x]
-a   x    ->  h    c
-   b c      a b
-*/
 func (h *Node) rotateLeft() *Node {
 	x := h.right
 	h.right = x.left
@@ -124,18 +139,13 @@ func (h *Node) rotateLeft() *Node {
 	return x
 }
 
-/*
-   [h]         [x]
- x    c  ->   a   h
-a b              b c
-*/
 func (h *Node) rotateRight() *Node {
 	x := h.left
 	h.left = x.right
 	x.right = h
 	x.color = x.right.color
 	x.right.color = COLOR_RED
-	return h
+	return x
 }
 
 func (h *Node) flipColors() {
