@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"golang.org/x/exp/constraints"
 )
 
 func TestRedBlackBST_Insert(t *testing.T) {
@@ -40,8 +42,8 @@ func TestRedBlackBST_Search(t *testing.T) {
 	}{
 		{"d", 4},
 		{"c", 3},
-		{"aa", 1},
-		{"ab", 2},
+		{"a", 1},
+		{"b", 2},
 	}
 
 	tree := New[string, int]()
@@ -53,6 +55,35 @@ func TestRedBlackBST_Search(t *testing.T) {
 		got := tree.Search(kv.k)
 		assertEqual(t, kv.v, got)
 	}
+	// fmt.Print(printByDepth(tree))
+}
+
+func TestRedBlackBST_Iterator(t *testing.T) {
+	t.Parallel()
+
+	tree := New[int, string]()
+	tree.Insert(4, "d")
+	tree.Insert(3, "c")
+	tree.Insert(1, "a")
+	tree.Insert(2, "b")
+
+	it := tree.Begin()
+	assertEqual(t, "a", it.Value())
+
+	it, ok := it.Next()
+	assertEqual(t, true, ok)
+	assertEqual(t, "b", it.Value())
+
+	it, _ = it.Next()
+	assertEqual(t, "c", it.Value())
+
+	it, _ = it.Next()
+	assertEqual(t, "d", it.Value())
+
+	it, ok = it.Next()
+	assertEqual(t, false, ok)
+	// default to zero value if at end
+	assertEqual(t, "", it.Value())
 }
 
 // Check validity of red-black binary search tree
@@ -83,20 +114,13 @@ func height[K Key, V Value](x *Node[K, V], mk map[K]int) int {
 
 	hl := height(x.left, mk)
 	hr := height(x.right, mk)
-	h := Max(hl, hr) + 1
+	h := max(hl, hr) + 1
 	if x.left.IsRed() {
 		h--
 	}
 
 	mk[x.key] = h
 	return h
-}
-
-func Max(source, target int) int {
-	if source > target {
-		return source
-	}
-	return target
 }
 
 // recursively check that max height of left subtree is at most 1 different from height of right
@@ -107,20 +131,13 @@ func isConsistentSize[K Key, V Value](x *Node[K, V], mk map[K]int) bool {
 
 	hl := height(x.left, mk)
 	hr := height(x.right, mk)
-	abs := Abs(hl - hr)
+	abs := abs(hl - hr)
 	if abs > 1 {
 		// for debugging
 		fmt.Printf("key: %v, hl: %v, hr: %v\n", x.key, hl, hr)
 		return false
 	}
 	return isConsistentSize(x.left, mk) && isConsistentSize(x.right, mk)
-}
-
-func Abs(num int) int {
-	if num >= 0 {
-		return num
-	}
-	return -num
 }
 
 func checkBST[K Key, V Value](t *testing.T, rb *RedBlackBST[K, V]) {
@@ -198,12 +215,30 @@ func is23Tree[K Key, V Value](x *Node[K, V]) bool {
 	return is23Tree(x.left) && is23Tree(x.right)
 }
 
+// assert helpers
 func assertEqual(t *testing.T, want, got interface{}) {
+	t.Helper()
 	if want != got {
 		t.Errorf("want %v, got %v", want, got)
 	}
 }
 
+// numeric helpers
+func max[N constraints.Ordered](source, target N) N {
+	if source > target {
+		return source
+	}
+	return target
+}
+
+func abs[N constraints.Signed](num N) N {
+	if num >= 0 {
+		return num
+	}
+	return -num
+}
+
+// print helpers
 func printByDepth[K Key, V Value](rb *RedBlackBST[K, V]) string {
 	d := 0
 	list := map[int][]string{}

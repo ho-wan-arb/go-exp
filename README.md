@@ -32,9 +32,33 @@ a   x    ->  h    c
    b c      a b
 ```
 
-Usage:
+Right rotation:
+```
+   [h]         [x]
+ x    c  ->   a   h
+a b              b c
+```
+
+API
 ```go
-tree := New[int, string]()
-tree.Insert(1, "a")
-v := tree.Search(1)
+type (
+	Key   constraints.Ordered
+	Value any
+)
+
+type Iterator[V any] interface {
+	Next() (Iterator[V], bool)
+	Value() V
+}
+
+type RedBlackBST[K Key, V Value]
+   func New() *RedBlackBST
+   func (t *RedBlackBST) Insert(key K, val V)
+   func (t *RedBlackBST) Search(key K) V
+   func (t *RedBlackBST) Begin() Iterator[V]
+
+type Node[K Key, V Value]
+   func (h *Node[K, V]) Value() V
+   func (h *Node[K, V]) Next() (Iterator[V], bool)
+   func (h *Node[K, V]) IsRed() bool
 ```

@@ -22,6 +22,11 @@ type (
 	Value any
 )
 
+type Iterator[V any] interface {
+	Next() (Iterator[V], bool)
+	Value() V
+}
+
 type Node[K Key, V Value] struct {
 	key    K
 	value  V
@@ -128,6 +133,50 @@ func (t *RedBlackBST[K, V]) Delete() {
 	// TODO
 }
 
+func (t *RedBlackBST[K, V]) Begin() Iterator[V] {
+	x := t.root
+	for x.left != nil {
+		x = x.left
+	}
+	return x
+}
+
+func (h *Node[K, V]) Value() V {
+	if h == nil {
+		return *new(V)
+	}
+
+	return h.value
+}
+
+func (h *Node[K, V]) Next() (Iterator[V], bool) {
+	x := h
+	if x.right != nil {
+		// one step right
+		x = x.right
+
+		// then down to furthest left
+		for x.left != nil {
+			x = x.left
+		}
+		return x, true
+	}
+
+	// left subtree processed, backtrack up to right only
+	p := x.parent
+	for x == p.right {
+		x = p
+		p = p.parent
+
+		if p == nil {
+			// all nodes visited, reached up to parent of root which is nil
+			return new(Node[K, V]), false
+		}
+	}
+
+	return p, true
+}
+
 // utility functions on Node
 func (h *Node[K, V]) IsRed() bool {
 	if h == nil {
@@ -138,6 +187,8 @@ func (h *Node[K, V]) IsRed() bool {
 
 func (h *Node[K, V]) rotateLeft() *Node[K, V] {
 	x := h.right
+	x.parent = h.parent
+
 	h.right = x.left
 	if h.right != nil {
 		h.right.parent = h
@@ -159,6 +210,7 @@ func (h *Node[K, V]) rotateRight() *Node[K, V] {
 	if h.left != nil {
 		h.left.parent = h
 	}
+	x.parent = h.parent
 
 	x.right = h
 	if x.right != nil {
