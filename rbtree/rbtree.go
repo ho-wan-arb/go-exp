@@ -23,11 +23,12 @@ type (
 )
 
 type Node[K Key, V Value] struct {
-	key   K
-	value V
-	left  *Node[K, V]
-	right *Node[K, V]
-	color color
+	key    K
+	value  V
+	left   *Node[K, V]
+	right  *Node[K, V]
+	parent *Node[K, V]
+	color  color
 }
 
 func newNode[K Key, V Value](key K, val V, clr color) *Node[K, V] {
@@ -77,8 +78,10 @@ func (t *RedBlackBST[K, V]) insert(h *Node[K, V], key K, val V) *Node[K, V] {
 	switch {
 	case c < 0:
 		h.left = t.insert(h.left, key, val)
+		h.left.parent = h
 	case c > 0:
 		h.right = t.insert(h.right, key, val)
+		h.right.parent = h
 	default:
 		h.value = val
 	}
@@ -136,7 +139,15 @@ func (h *Node[K, V]) IsRed() bool {
 func (h *Node[K, V]) rotateLeft() *Node[K, V] {
 	x := h.right
 	h.right = x.left
+	if h.right != nil {
+		h.right.parent = h
+	}
+
 	x.left = h
+	if x.left != nil {
+		x.left.parent = x
+	}
+
 	x.color = x.left.color
 	x.left.color = COLOR_RED
 	return x
@@ -145,7 +156,15 @@ func (h *Node[K, V]) rotateLeft() *Node[K, V] {
 func (h *Node[K, V]) rotateRight() *Node[K, V] {
 	x := h.left
 	h.left = x.right
+	if h.left != nil {
+		h.left.parent = h
+	}
+
 	x.right = h
+	if x.right != nil {
+		x.right.parent = x
+	}
+
 	x.color = x.right.color
 	x.right.color = COLOR_RED
 	return x

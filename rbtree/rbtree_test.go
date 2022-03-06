@@ -29,23 +29,22 @@ func TestRedBlackBST_Insert(t *testing.T) {
 		tree.Insert(kv.k, kv.v)
 		tree.validateTree(t)
 	}
-	fmt.Printf(printByDepth(tree))
 }
 
 func TestRedBlackBST_Search(t *testing.T) {
 	t.Parallel()
 
 	m := []struct {
-		k int
-		v string
+		k string
+		v int
 	}{
-		{4, "d"},
-		{3, "c"},
-		{1, "a"},
-		{2, "b"},
+		{"d", 4},
+		{"c", 3},
+		{"aa", 1},
+		{"ab", 2},
 	}
 
-	tree := New[int, string]()
+	tree := New[string, int]()
 	for _, kv := range m {
 		tree.Insert(kv.k, kv.v)
 	}
@@ -211,7 +210,6 @@ func printByDepth[K Key, V Value](rb *RedBlackBST[K, V]) string {
 	traverseByDepth(rb.root, d, list)
 
 	sb := strings.Builder{}
-	sb.WriteString("----\n")
 	for i := 1; i <= len(list); i++ {
 		sb.WriteString(fmt.Sprintf("[depth %d]:  ", i))
 		sb.WriteString(fmt.Sprintf("%v\n", strings.Join(list[i], " | ")))
