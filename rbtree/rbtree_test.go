@@ -1,9 +1,9 @@
 package rbtree
 
 import (
+	"fmt"
+	"strings"
 	"testing"
-
-	"golang.org/x/exp/constraints"
 )
 
 func TestRedBlackBST_Insert(t *testing.T) {
@@ -17,6 +17,11 @@ func TestRedBlackBST_Insert(t *testing.T) {
 		{4, "d"},
 		{3, "c"},
 		{2, "b"},
+		{5, "e"},
+		{6, "f"},
+		{9, "i"},
+		{8, "h"},
+		{7, "g"},
 	}
 
 	tree := New[int, string]()
@@ -24,6 +29,7 @@ func TestRedBlackBST_Insert(t *testing.T) {
 		tree.Insert(kv.k, kv.v)
 		tree.validateTree(t)
 	}
+	fmt.Printf(printByDepth(tree))
 }
 
 func TestRedBlackBST_Search(t *testing.T) {
@@ -61,11 +67,11 @@ func (rb *RedBlackBST[K, V]) validateTree(t *testing.T) {
 func checkSize[K Key, V Value](t *testing.T, rb *RedBlackBST[K, V]) {
 	heights := map[K]int{}
 	if !isConsistentSize(rb.root, heights) {
-		t.Errorf("not a balanced binary tree")
+		t.Errorf("not a balanced binary tree: heights: %v\n%v\n", heights, printByDepth(rb))
 	}
 }
 
-// cache heights to avoid recomputing the same heights
+// cache heights to avoid recomputing the same heights, only counting black links
 func height[K Key, V Value](x *Node[K, V], mk map[K]int) int {
 	if x == nil {
 		return 0
@@ -79,12 +85,15 @@ func height[K Key, V Value](x *Node[K, V], mk map[K]int) int {
 	hl := height(x.left, mk)
 	hr := height(x.right, mk)
 	h := Max(hl, hr) + 1
+	if x.left.IsRed() {
+		h--
+	}
 
 	mk[x.key] = h
 	return h
 }
 
-func Max[C constraints.Ordered](source, target C) C {
+func Max(source, target int) int {
 	if source > target {
 		return source
 	}
@@ -101,12 +110,14 @@ func isConsistentSize[K Key, V Value](x *Node[K, V], mk map[K]int) bool {
 	hr := height(x.right, mk)
 	abs := Abs(hl - hr)
 	if abs > 1 {
+		// for debugging
+		fmt.Printf("key: %v, hl: %v, hr: %v\n", x.key, hl, hr)
 		return false
 	}
 	return isConsistentSize(x.left, mk) && isConsistentSize(x.right, mk)
 }
 
-func Abs[N constraints.Float | constraints.Integer](num N) N {
+func Abs(num int) int {
 	if num >= 0 {
 		return num
 	}
@@ -115,7 +126,7 @@ func Abs[N constraints.Float | constraints.Integer](num N) N {
 
 func checkBST[K Key, V Value](t *testing.T, rb *RedBlackBST[K, V]) {
 	if !isBST(rb.root, nil, nil) {
-		t.Errorf("not a valid Binary Search Tree")
+		t.Errorf("not a valid Binary Search Tree\n%v\n", printByDepth(rb))
 	}
 }
 
@@ -148,7 +159,7 @@ func checkBalancedLinks[K Key, V Value](t *testing.T, rb *RedBlackBST[K, V]) {
 	}
 
 	if !isBalanced(rb.root, black) {
-		t.Errorf("tree is not balanced: want depth of %v", black)
+		t.Errorf("tree is not balanced: want depth of %v\n%v\n", black, printByDepth(rb))
 	}
 }
 
@@ -167,7 +178,7 @@ func isBalanced[K Key, V Value](x *Node[K, V], black int) bool {
 
 func check23Tree[K Key, V Value](t *testing.T, rb *RedBlackBST[K, V]) {
 	if !is23Tree(rb.root) {
-		t.Errorf("not a valid 23 Tree")
+		t.Errorf("not a valid 23 Tree\n%v\n", printByDepth(rb))
 	}
 }
 
@@ -192,4 +203,39 @@ func assertEqual(t *testing.T, want, got interface{}) {
 	if want != got {
 		t.Errorf("want %v, got %v", want, got)
 	}
+}
+
+func printByDepth[K Key, V Value](rb *RedBlackBST[K, V]) string {
+	d := 0
+	list := map[int][]string{}
+	traverseByDepth(rb.root, d, list)
+
+	sb := strings.Builder{}
+	sb.WriteString("----\n")
+	for i := 1; i <= len(list); i++ {
+		sb.WriteString(fmt.Sprintf("[depth %d]:  ", i))
+		sb.WriteString(fmt.Sprintf("%v\n", strings.Join(list[i], " | ")))
+	}
+	sb.WriteString("----\n")
+
+	return sb.String()
+}
+
+func traverseByDepth[K Key, V Value](x *Node[K, V], d int, list map[int][]string) {
+	if x == nil {
+		return
+	}
+
+	curKey := fmt.Sprintf("%v", x.key)
+
+	if !x.IsRed() {
+		d++
+		list[d] = append(list[d], curKey)
+	} else {
+		// join 2 nodes: red link should lean left, so smaller number should always be in front
+		list[d][len(list[d])-1] = fmt.Sprintf("(%v,%v)", curKey, list[d][len(list[d])-1])
+	}
+
+	traverseByDepth(x.left, d, list)
+	traverseByDepth(x.right, d, list)
 }

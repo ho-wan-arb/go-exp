@@ -1,12 +1,14 @@
 package rbtree
 
-import "golang.org/x/exp/constraints"
-
 // An implmentation of the left-leaning red-black 2-3 binary search tree (LLRB BST).
 //
 // References:
 //   https://sedgewick.io/wp-content/themes/sedgewick/papers/2008LLRB.pdf
 //   https://algs4.cs.princeton.edu/code/edu/princeton/cs/algs4/RedBlackBST.java
+
+import (
+	"golang.org/x/exp/constraints"
+)
 
 const (
 	COLOR_RED   color = true
@@ -100,20 +102,19 @@ func (t *RedBlackBST[K, V]) Search(key K) V {
 	return search(t.root, key)
 }
 
+// search does an interative lookup for the key
 func search[K Key, V Value](x *Node[K, V], key K) V {
 	for x != nil {
 		c := CompareTo(key, x.key)
+		if c == 0 {
+			return x.value
+		}
+
 		if c < 0 {
 			x = x.left
-			continue
-		}
-
-		if c > 0 {
+		} else {
 			x = x.right
-			continue
 		}
-
-		return x.value
 	}
 
 	// deference and return the zero value based on type
