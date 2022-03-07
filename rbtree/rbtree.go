@@ -7,6 +7,9 @@ package rbtree
 //   https://algs4.cs.princeton.edu/code/edu/princeton/cs/algs4/RedBlackBST.java
 
 import (
+	"fmt"
+	"strings"
+
 	"golang.org/x/exp/constraints"
 )
 
@@ -23,34 +26,34 @@ type (
 )
 
 type Iterator[K Key, V Value] struct {
-	tree    *RedBlackBST[K, V]
-	current *Node[K, V]
+	tree    *RBTree[K, V]
+	current *RBNode[K, V]
 }
 
-type Node[K Key, V Value] struct {
+type RBNode[K Key, V Value] struct {
 	key    K
 	value  V
-	left   *Node[K, V]
-	right  *Node[K, V]
-	parent *Node[K, V]
+	left   *RBNode[K, V]
+	right  *RBNode[K, V]
+	parent *RBNode[K, V]
 	color  color
 }
 
-func newNode[K Key, V Value](key K, val V, clr color) *Node[K, V] {
-	return &Node[K, V]{
+func newNode[K Key, V Value](key K, val V, clr color) *RBNode[K, V] {
+	return &RBNode[K, V]{
 		key:   key,
 		value: val,
 		color: clr,
 	}
 }
 
-type RedBlackBST[K Key, V Value] struct {
-	root *Node[K, V]
+type RBTree[K Key, V Value] struct {
+	root *RBNode[K, V]
 }
 
 // New creates an empty instance of a Left-Leaning Red-Black BST.
-func New[K Key, V Value]() *RedBlackBST[K, V] {
-	return &RedBlackBST[K, V]{}
+func New[K Key, V Value]() *RBTree[K, V] {
+	return &RBTree[K, V]{}
 }
 
 // CompareTo returns > 0 if source is greater than target
@@ -66,62 +69,58 @@ func CompareTo[K Key](source, target K) int {
 }
 
 // Insert a new element
-func (t *RedBlackBST[K, V]) Insert(key K, val V) {
+func (t *RBTree[K, V]) Insert(key K, val V) {
 	t.root = t.insert(t.root, key, val)
 	t.root.color = COLOR_BLACK
 }
 
 // insert will recursively traverse down the tree and insert new node at leaf or
 // update the value if key exists, then fix by doing rotation or color flip
-func (t *RedBlackBST[K, V]) insert(h *Node[K, V], key K, val V) *Node[K, V] {
-	if h == nil {
-		h = newNode(key, val, COLOR_RED)
-		return h
+func (t *RBTree[K, V]) insert(cur *RBNode[K, V], key K, val V) *RBNode[K, V] {
+	if cur == nil {
+		cur = newNode(key, val, COLOR_RED)
+		return cur
 	}
 
-	c := CompareTo(key, h.key)
+	c := CompareTo(key, cur.key)
 	switch {
 	case c < 0:
-		h.left = t.insert(h.left, key, val)
-		h.left.parent = h
+		cur.left = t.insert(cur.left, key, val)
+		cur.left.parent = cur
 	case c > 0:
-		h.right = t.insert(h.right, key, val)
-		h.right.parent = h
+		cur.right = t.insert(cur.right, key, val)
+		cur.right.parent = cur
 	default:
-		h.value = val
+		cur.value = val
 	}
 
 	// fix height of tree and ensure red links lean left
-	if h.right.IsRed() && !h.left.IsRed() {
-		h = h.rotateLeft()
+	if cur.right.isRed() && !cur.left.isRed() {
+		cur = cur.rotateLeft()
 	}
-	if h.left.IsRed() && h.left.left.IsRed() {
-		h = h.rotateRight()
+	if cur.left.isRed() && cur.left.left.isRed() {
+		cur = cur.rotateRight()
 	}
-	if h.left.IsRed() && h.right.IsRed() {
-		h.flipColors()
+	if cur.left.isRed() && cur.right.isRed() {
+		cur.flipColors()
 	}
 
-	return h
+	return cur
 }
 
 // Search by key and returns value, or the zero value of type V if not found
-func (t *RedBlackBST[K, V]) Search(key K) (V, bool) {
-	return search(t.root, key)
-}
-
-// search does an interative lookup for the key
-func search[K Key, V Value](x *Node[K, V], key K) (V, bool) {
-	for x != nil {
-		c := CompareTo(key, x.key)
+func (t *RBTree[K, V]) Search(key K) (V, bool) {
+	cur := t.root
+	for cur != nil {
+		c := CompareTo(key, cur.key)
 		if c == 0 {
-			return x.value, true
+			return cur.value, true
 		}
 
 		if c < 0 {
-			x = x.left
+			cur = cur.left
 		} else {
-			x = x.right
+			cur = cur.right
 		}
 	}
 
@@ -129,11 +128,11 @@ func search[K Key, V Value](x *Node[K, V], key K) (V, bool) {
 	return *new(V), false
 }
 
-func (t *RedBlackBST[K, V]) Delete() {
+func (t *RBTree[K, V]) Delete() {
 	// TODO
 }
 
-func (t *RedBlackBST[K, V]) Begin() *Iterator[K, V] {
+func (t *RBTree[K, V]) Begin() *Iterator[K, V] {
 	cur := t.root
 	for cur.left != nil {
 		cur = cur.left
@@ -146,7 +145,7 @@ func (t *RedBlackBST[K, V]) Begin() *Iterator[K, V] {
 }
 
 // End moves to one past the last element.
-func (t *RedBlackBST[K, V]) Last() *Iterator[K, V] {
+func (t *RBTree[K, V]) Last() *Iterator[K, V] {
 	cur := t.root
 	for cur.right != nil {
 		cur = cur.right
@@ -159,29 +158,27 @@ func (t *RedBlackBST[K, V]) Last() *Iterator[K, V] {
 }
 
 // End moves to one past the last element.
-func (t *RedBlackBST[K, V]) End() *Iterator[K, V] {
+func (t *RBTree[K, V]) End() *Iterator[K, V] {
 	return &Iterator[K, V]{
 		tree:    t,
 		current: nil,
 	}
 }
 
-func (it *Iterator[K, V]) Key() K {
-	if it.current == nil {
-		// deference and return zero value
-		return *new(K)
+// String prints the tree in a visual format row by row.
+func (rb *RBTree[K, V]) String() string {
+	d := 0
+	list := map[int][]string{}
+	traverseByDepth(rb.root, d, list)
+
+	sb := strings.Builder{}
+	sb.WriteString("----\n")
+	for i := 1; i <= len(list); i++ {
+		sb.WriteString(fmt.Sprintf("[depth %d]:  ", i))
+		sb.WriteString(fmt.Sprintf("%v\n", strings.Join(list[i], " | ")))
 	}
 
-	return it.current.key
-}
-
-func (it *Iterator[K, V]) Value() V {
-	if it.current == nil {
-		// deference and return zero value
-		return *new(V)
-	}
-
-	return it.current.value
+	return sb.String()
 }
 
 // Next does an in-order traversal through a binary search tree.
@@ -256,53 +253,89 @@ func (it *Iterator[K, V]) Prev() bool {
 	return true
 }
 
-// utility functions on Node
-func (h *Node[K, V]) IsRed() bool {
-	if h == nil {
+func (it *Iterator[K, V]) Key() K {
+	if it.current == nil {
+		// deference and return zero value
+		return *new(K)
+	}
+
+	return it.current.key
+}
+
+func (it *Iterator[K, V]) Value() V {
+	if it.current == nil {
+		// deference and return zero value
+		return *new(V)
+	}
+
+	return it.current.value
+}
+
+func (n *RBNode[K, V]) isRed() bool {
+	if n == nil {
 		return false
 	}
-	return bool(h.color)
+	return bool(n.color)
 }
 
-func (h *Node[K, V]) rotateLeft() *Node[K, V] {
-	x := h.right
-	x.parent = h.parent
+func (n *RBNode[K, V]) rotateLeft() *RBNode[K, V] {
+	cur := n.right
+	cur.parent = n.parent
 
-	h.right = x.left
-	if h.right != nil {
-		h.right.parent = h
+	n.right = cur.left
+	if n.right != nil {
+		n.right.parent = n
 	}
 
-	x.left = h
-	if x.left != nil {
-		x.left.parent = x
+	cur.left = n
+	if cur.left != nil {
+		cur.left.parent = cur
 	}
 
-	x.color = x.left.color
-	x.left.color = COLOR_RED
-	return x
+	cur.color = cur.left.color
+	cur.left.color = COLOR_RED
+	return cur
 }
 
-func (h *Node[K, V]) rotateRight() *Node[K, V] {
-	x := h.left
-	h.left = x.right
-	if h.left != nil {
-		h.left.parent = h
+func (n *RBNode[K, V]) rotateRight() *RBNode[K, V] {
+	cur := n.left
+	n.left = cur.right
+	if n.left != nil {
+		n.left.parent = n
 	}
-	x.parent = h.parent
+	cur.parent = n.parent
 
-	x.right = h
-	if x.right != nil {
-		x.right.parent = x
+	cur.right = n
+	if cur.right != nil {
+		cur.right.parent = cur
 	}
 
-	x.color = x.right.color
-	x.right.color = COLOR_RED
-	return x
+	cur.color = cur.right.color
+	cur.right.color = COLOR_RED
+	return cur
 }
 
-func (h *Node[K, V]) flipColors() {
-	h.color = !h.color
-	h.left.color = !h.left.color
-	h.right.color = !h.right.color
+func (n *RBNode[K, V]) flipColors() {
+	n.color = !n.color
+	n.left.color = !n.left.color
+	n.right.color = !n.right.color
+}
+
+func traverseByDepth[K Key, V Value](cur *RBNode[K, V], d int, list map[int][]string) {
+	if cur == nil {
+		return
+	}
+
+	curKey := fmt.Sprintf("%v", cur.key)
+
+	if !cur.isRed() {
+		d++
+		list[d] = append(list[d], curKey)
+	} else {
+		// join 2 nodes: red link should lean left, so smaller number should always be in front
+		list[d][len(list[d])-1] = fmt.Sprintf("(%v,%v)", curKey, list[d][len(list[d])-1])
+	}
+
+	traverseByDepth(cur.left, d, list)
+	traverseByDepth(cur.right, d, list)
 }

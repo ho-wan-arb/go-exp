@@ -23,42 +23,31 @@ alias go=go1.18rc1
 
 ## LLRB tree
 
-WIP Implementation of a Left-Leaning Red-Black tree with generics.
+Implementation of a Left-Leaning 2-3 Red-Black tree with generics.
+This is a self balancing Binary Search Tree (BST).
+
+Key properties:
+- Red links can 'glue' 2 nodes together, which have 3 children (hence 2-3 tree).
+- Red links have to lean left, cannot have 2 or more red links together for a 2-3 tree.
+- Depth to all nodes is the same when counting blank links only.
+
+Complexity (in general for balanced BST):
+- O(logN) to search
+- O(logN) to insert
+- O(logN) to delete
+
+### Details
 
 Left rotation:
 ```
- [h]           [x]
-a   x    ->  h    c
-   b c      a b
+ [b]           [c]
+a   c    ->  b    e
+   d e      a d
 ```
 
 Right rotation:
 ```
-   [h]         [x]
- x    c  ->   a   h
-a b              b c
-```
-
-API
-```go
-type (
-	Key   constraints.Ordered
-	Value any
-)
-
-type Iterator[V any] interface {
-	Next() (Iterator[V], bool)
-	Value() V
-}
-
-type RedBlackBST[K Key, V Value]
-   func New() *RedBlackBST
-   func (t *RedBlackBST) Insert(key K, val V)
-   func (t *RedBlackBST) Search(key K) V
-   func (t *RedBlackBST) Begin() Iterator[V]
-
-type Node[K Key, V Value]
-   func (h *Node[K, V]) Value() V
-   func (h *Node[K, V]) Next() (Iterator[V], bool)
-   func (h *Node[K, V]) IsRed() bool
+   [c]         [b]
+ b    e  ->   a   c
+a d              d e
 ```
