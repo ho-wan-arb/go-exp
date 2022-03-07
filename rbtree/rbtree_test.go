@@ -52,13 +52,14 @@ func TestRedBlackBST_Search(t *testing.T) {
 	}
 
 	for _, kv := range m {
-		got := tree.Search(kv.k)
+		got, ok := tree.Search(kv.k)
 		assertEqual(t, kv.v, got)
+		assertEqual(t, true, ok)
 	}
 	// fmt.Print(printByDepth(tree))
 }
 
-func TestRedBlackBST_Iterator(t *testing.T) {
+func TestRedBlackBST_Iterate(t *testing.T) {
 	t.Parallel()
 
 	tree := New[int, string]()
@@ -67,22 +68,51 @@ func TestRedBlackBST_Iterator(t *testing.T) {
 	tree.Insert(1, "a")
 	tree.Insert(2, "b")
 
+	// fmt.Print(printByDepth(tree))
+
 	it := tree.Begin()
 	assertEqual(t, "a", it.Value())
 
-	it, ok := it.Next()
+	// in-order traversal
+	ok := it.Next()
 	assertEqual(t, true, ok)
 	assertEqual(t, "b", it.Value())
-
-	it, _ = it.Next()
+	ok = it.Next()
+	assertEqual(t, true, ok)
 	assertEqual(t, "c", it.Value())
+	ok = it.Next()
+	assertEqual(t, true, ok)
+	assertEqual(t, "d", it.Value())
+	ok = it.Next()
+	assertEqual(t, false, ok)
+	assertEqual(t, "", it.Value())
 
-	it, _ = it.Next()
+	ok = it.Next()
+	assertEqual(t, true, ok)
+	// default to zero value if at end
+	assertEqual(t, "a", it.Value())
+
+	it = tree.Last()
 	assertEqual(t, "d", it.Value())
 
-	it, ok = it.Next()
+	it = tree.End()
+	assertEqual(t, "", it.Value())
+
+	// in-order traversal in revesse
+	ok = it.Prev()
+	assertEqual(t, true, ok)
+	assertEqual(t, "d", it.Value())
+	ok = it.Prev()
+	assertEqual(t, true, ok)
+	assertEqual(t, "c", it.Value())
+	ok = it.Prev()
+	assertEqual(t, true, ok)
+	assertEqual(t, "b", it.Value())
+	ok = it.Prev()
+	assertEqual(t, true, ok)
+	assertEqual(t, "a", it.Value())
+	ok = it.Prev()
 	assertEqual(t, false, ok)
-	// default to zero value if at end
 	assertEqual(t, "", it.Value())
 }
 

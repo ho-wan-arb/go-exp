@@ -22,9 +22,9 @@ type (
 	Value any
 )
 
-type Iterator[V any] interface {
-	Next() (Iterator[V], bool)
-	Value() V
+type Iterator[K Key, V Value] struct {
+	tree    *RedBlackBST[K, V]
+	current *Node[K, V]
 }
 
 type Node[K Key, V Value] struct {
@@ -106,16 +106,16 @@ func (t *RedBlackBST[K, V]) insert(h *Node[K, V], key K, val V) *Node[K, V] {
 }
 
 // Search by key and returns value, or the zero value of type V if not found
-func (t *RedBlackBST[K, V]) Search(key K) V {
+func (t *RedBlackBST[K, V]) Search(key K) (V, bool) {
 	return search(t.root, key)
 }
 
 // search does an interative lookup for the key
-func search[K Key, V Value](x *Node[K, V], key K) V {
+func search[K Key, V Value](x *Node[K, V], key K) (V, bool) {
 	for x != nil {
 		c := CompareTo(key, x.key)
 		if c == 0 {
-			return x.value
+			return x.value, true
 		}
 
 		if c < 0 {
@@ -125,56 +125,135 @@ func search[K Key, V Value](x *Node[K, V], key K) V {
 		}
 	}
 
-	// deference and return the zero value based on type
-	return *new(V)
+	// deference and return zero value
+	return *new(V), false
 }
 
 func (t *RedBlackBST[K, V]) Delete() {
 	// TODO
 }
 
-func (t *RedBlackBST[K, V]) Begin() Iterator[V] {
-	x := t.root
-	for x.left != nil {
-		x = x.left
+func (t *RedBlackBST[K, V]) Begin() *Iterator[K, V] {
+	cur := t.root
+	for cur.left != nil {
+		cur = cur.left
 	}
-	return x
+
+	return &Iterator[K, V]{
+		tree:    t,
+		current: cur,
+	}
 }
 
-func (h *Node[K, V]) Value() V {
-	if h == nil {
+// End moves to one past the last element.
+func (t *RedBlackBST[K, V]) Last() *Iterator[K, V] {
+	cur := t.root
+	for cur.right != nil {
+		cur = cur.right
+	}
+
+	return &Iterator[K, V]{
+		tree:    t,
+		current: cur,
+	}
+}
+
+// End moves to one past the last element.
+func (t *RedBlackBST[K, V]) End() *Iterator[K, V] {
+	return &Iterator[K, V]{
+		tree:    t,
+		current: nil,
+	}
+}
+
+func (it *Iterator[K, V]) Key() K {
+	if it.current == nil {
+		// deference and return zero value
+		return *new(K)
+	}
+
+	return it.current.key
+}
+
+func (it *Iterator[K, V]) Value() V {
+	if it.current == nil {
+		// deference and return zero value
 		return *new(V)
 	}
 
-	return h.value
+	return it.current.value
 }
 
-func (h *Node[K, V]) Next() (Iterator[V], bool) {
-	x := h
-	if x.right != nil {
+// Next does an in-order traversal through a binary search tree.
+func (it *Iterator[K, V]) Next() bool {
+	cur := it.current
+	if cur == nil {
+		begin := it.tree.Begin()
+		it.current = begin.current
+		return true
+	}
+
+	if cur.right != nil {
 		// one step right
-		x = x.right
+		cur = cur.right
 
 		// then down to furthest left
-		for x.left != nil {
-			x = x.left
+		for cur.left != nil {
+			cur = cur.left
 		}
-		return x, true
+		it.current = cur
+		return true
 	}
 
 	// left subtree processed, backtrack up to right only
-	p := x.parent
-	for x == p.right {
-		x = p
-		p = p.parent
+	for cur == cur.parent.right {
+		cur = cur.parent
 
-		if p == nil {
+		if cur.parent == nil {
 			// all nodes visited, reached up to parent of root which is nil
-			return new(Node[K, V]), false
+			it.current = nil
+			return false
 		}
 	}
 
-	return p, true
+	it.current = cur.parent
+	return true
+}
+
+// Next does an in-order traversal through a binary search tree in reverse.
+func (it *Iterator[K, V]) Prev() bool {
+	cur := it.current
+	if cur == nil {
+		begin := it.tree.Last()
+		it.current = begin.current
+		return true
+	}
+
+	if cur.left != nil {
+		// one step right
+		cur = cur.left
+
+		// then down to furthest right
+		for cur.right != nil {
+			cur = cur.right
+		}
+		it.current = cur
+		return true
+	}
+
+	// right subtree processed, backtrack up to left only
+	for cur == cur.parent.left {
+		cur = cur.parent
+
+		if cur.parent == nil {
+			// all nodes visited, reached up to parent of root which is nil
+			it.current = nil
+			return false
+		}
+	}
+
+	it.current = cur.parent
+	return true
 }
 
 // utility functions on Node
