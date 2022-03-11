@@ -80,7 +80,7 @@ func newNode[K key, V val](k K, v V, c color) *node[K, V] {
 	}
 }
 
-// Insert a new element with a key and value.
+// Insert a new element with a key and value or update value on an existing key.
 func (t *TreeMap[K, V]) Insert(key K, val V) {
 	t.root = t.insert(t.root, key, val)
 	t.root.color = black

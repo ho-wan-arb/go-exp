@@ -30,12 +30,18 @@ func TestTreeMap_InsertAndSearch(t *testing.T) {
 
 	for _, kv := range m {
 		got, ok := tr.Search(kv.k)
-		assertEqual(t, kv.v, got, tr)
 		assertEqual(t, true, ok, tr)
+		assertEqual(t, kv.v, got, tr)
 	}
 
-	got := tr.Length()
-	assertEqual(t, len(m), got, tr)
+	gotKey, ok := tr.Search(-1)
+	assertEqual(t, false, ok)
+	assertEqual(t, gotKey, "")
+
+	gotLen := tr.Length()
+	assertEqual(t, len(m), gotLen, tr)
+
+	fmt.Print("visual representation of tree:", tr)
 }
 
 func TestTreeMap_CustomComparator(t *testing.T) {
@@ -48,6 +54,7 @@ func TestTreeMap_CustomComparator(t *testing.T) {
 		{"aa", "2"},
 		{"b", "1"},
 		{"ccc", "3"},
+		{"b", "4"},
 	}
 
 	sortByStringLenFunc := func(a, b string) int {
@@ -69,6 +76,7 @@ func TestTreeMap_CustomComparator(t *testing.T) {
 	it := tr.Iterator()
 	it.Begin()
 	assertEqual(t, "b", it.Key())
+	assertEqual(t, "4", it.Value())
 
 	ok := it.Next()
 	assertEqual(t, true, ok)
@@ -115,6 +123,7 @@ func TestTreeMap_Iterate(t *testing.T) {
 	assertEqual(t, "d", it.Value())
 
 	it.End()
+	assertEqual(t, 0, it.Key())
 	assertEqual(t, "", it.Value())
 
 	// in-order traversal in revesse
