@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestTreeMap_Search(t *testing.T) {
+func TestTreeMap_InsertAndSearch(t *testing.T) {
 	t.Parallel()
 
 	m := []struct {
@@ -23,29 +23,72 @@ func TestTreeMap_Search(t *testing.T) {
 		{7, "g"},
 	}
 
-	tree := New[int, string]()
+	tr := New[int, string]()
 	for _, kv := range m {
-		tree.Insert(kv.k, kv.v)
+		tr.Insert(kv.k, kv.v)
 	}
 
 	for _, kv := range m {
-		got, ok := tree.Search(kv.k)
-		assertEqual(t, kv.v, got, tree)
-		assertEqual(t, true, ok, tree)
+		got, ok := tr.Search(kv.k)
+		assertEqual(t, kv.v, got, tr)
+		assertEqual(t, true, ok, tr)
 	}
+
+	got := tr.Length()
+	assertEqual(t, len(m), got, tr)
+}
+
+func TestTreeMap_CustomComparator(t *testing.T) {
+	t.Parallel()
+
+	m := []struct {
+		k string
+		v string
+	}{
+		{"aa", "2"},
+		{"b", "1"},
+		{"ccc", "3"},
+	}
+
+	sortByStringLenFunc := func(a, b string) int {
+		switch {
+		case len(a) < len(b):
+			return -1
+		case len(a) > len(b):
+			return 1
+		default:
+			return 0
+		}
+	}
+	tr := NewWithComparator[string, string](sortByStringLenFunc)
+	for _, kv := range m {
+		tr.Insert(kv.k, kv.v)
+	}
+
+	// should - iterator returns keys by order of string length
+	it := tr.Begin()
+	assertEqual(t, "b", it.Key())
+
+	ok := it.Next()
+	assertEqual(t, true, ok)
+	assertEqual(t, "aa", it.Key())
+
+	ok = it.Next()
+	assertEqual(t, true, ok)
+	assertEqual(t, "ccc", it.Key())
 }
 
 func TestTreeMap_Iterate(t *testing.T) {
 	t.Parallel()
 
-	tree := New[int, string]()
-	tree.Insert(4, "d")
-	tree.Insert(3, "c")
-	tree.Insert(1, "a")
-	tree.Insert(2, "b")
+	tr := New[int, string]()
+	tr.Insert(4, "d")
+	tr.Insert(3, "c")
+	tr.Insert(1, "a")
+	tr.Insert(2, "b")
 
-	it := tree.Begin()
-	assertEqual(t, "a", it.Value(), tree)
+	it := tr.Begin()
+	assertEqual(t, "a", it.Value(), tr)
 
 	// in-order traversal
 	ok := it.Next()
@@ -66,10 +109,10 @@ func TestTreeMap_Iterate(t *testing.T) {
 	// default to zero value if at end
 	assertEqual(t, "a", it.Value())
 
-	it = tree.Last()
+	it = tr.Last()
 	assertEqual(t, "d", it.Value())
 
-	it = tree.End()
+	it = tr.End()
 	assertEqual(t, "", it.Value())
 
 	// in-order traversal in revesse

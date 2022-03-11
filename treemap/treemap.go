@@ -18,20 +18,46 @@ const (
 	black color = false
 )
 
+// Comparator allows keys to be compared for searching.
+// should return -ve if (a < b), 0 if (a == b) , +ve if (a > b)
+type Comparator[T any] func(a, b T) int
+
+func defaultComparator[key constraints.Ordered](a, b key) int {
+	switch {
+	case a < b:
+		return -1
+	case a > b:
+		return 1
+	default:
+		return 0
+	}
+}
+
 type (
-	key   constraints.Ordered
+	key   any
 	val   any
 	color bool
 )
 
-// TreeMap holds a binary search tree that can be used as a map.
+// TreeMap is a balanced binary search tree that can be used as a map.
 type TreeMap[K key, V val] struct {
-	root *node[K, V]
+	root       *node[K, V]
+	comparator Comparator[K]
+	length     int
 }
 
-// New creates an empty instance of a TreeMap.
-func New[K key, V val]() *TreeMap[K, V] {
-	return &TreeMap[K, V]{}
+// New creates a new TreeMap using the default comparator (< and >).
+func New[K constraints.Ordered, V val]() *TreeMap[K, V] {
+	return &TreeMap[K, V]{
+		comparator: defaultComparator[K],
+	}
+}
+
+// New creates a new TreeMap using a custom comparator func.
+func NewWithComparator[K key, V val](customComparator Comparator[K]) *TreeMap[K, V] {
+	return &TreeMap[K, V]{
+		comparator: customComparator,
+	}
 }
 
 type node[K key, V val] struct {
@@ -51,22 +77,11 @@ func newNode[K key, V val](k K, v V, c color) *node[K, V] {
 	}
 }
 
-// CompareTo returns > 0 if source is greater than target
-func CompareTo[K key](source, target K) int {
-	if source > target {
-		return 1
-	}
-	if source < target {
-		return -1
-	}
-
-	return 0
-}
-
-// Insert a new element
+// Insert a new element with a key and value.
 func (t *TreeMap[K, V]) Insert(key K, val V) {
 	t.root = t.insert(t.root, key, val)
 	t.root.color = black
+	t.length++
 }
 
 // insert will recursively traverse down the tree and insert new node at leaf or
@@ -77,7 +92,7 @@ func (t *TreeMap[K, V]) insert(cur *node[K, V], key K, val V) *node[K, V] {
 		return cur
 	}
 
-	c := CompareTo(key, cur.key)
+	c := t.comparator(key, cur.key)
 	switch {
 	case c < 0:
 		cur.left = t.insert(cur.left, key, val)
@@ -103,11 +118,16 @@ func (t *TreeMap[K, V]) insert(cur *node[K, V], key K, val V) *node[K, V] {
 	return cur
 }
 
-// Search by key and returns value, or the zero value of type V if not found
+// Length returns the number of elements in the tree map.
+func (t *TreeMap[K, V]) Length() int {
+	return t.length
+}
+
+// Search by key and returns value if found, or the zero value and false if not found
 func (t *TreeMap[K, V]) Search(key K) (V, bool) {
 	cur := t.root
 	for cur != nil {
-		c := CompareTo(key, cur.key)
+		c := t.comparator(key, cur.key)
 		if c == 0 {
 			return cur.value, true
 		}
@@ -121,6 +141,19 @@ func (t *TreeMap[K, V]) Search(key K) (V, bool) {
 
 	// deference and return zero value
 	return *new(V), false
+}
+
+// Iterator returns a new iterator and starts at the first element.
+func (t *TreeMap[K, V]) Iterator() *Iterator[K, V] {
+	cur := t.root
+	for cur.left != nil {
+		cur = cur.left
+	}
+
+	return &Iterator[K, V]{
+		tree:    t,
+		current: cur,
+	}
 }
 
 // Begin moves iterator in front of first element.

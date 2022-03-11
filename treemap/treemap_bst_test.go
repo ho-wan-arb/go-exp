@@ -22,19 +22,20 @@ func TestTreeMap_ValidBST(t *testing.T) {
 	tree := New[int, string]()
 	for _, kv := range m {
 		tree.Insert(kv.k, kv.v)
-		tree.validateTree(t)
+		validateTree(t, tree)
 	}
 }
 
 // Check validity of red-black binary search tree.
-func (rb *TreeMap[K, V]) validateTree(t *testing.T) {
+// To check heights using a map, K needs to be of type "comparable"
+func validateTree[K comparable, V any](t *testing.T, rb *TreeMap[K, V]) {
 	checkBST(t, rb)
 	checkBalancedLinks(t, rb)
 	checkSize(t, rb)
 	check23Tree(t, rb)
 }
 
-func checkSize[K key, V val](t *testing.T, rb *TreeMap[K, V]) {
+func checkSize[K comparable, V val](t *testing.T, rb *TreeMap[K, V]) {
 	heights := map[K]int{}
 	if !isConsistentSize(rb.root, heights) {
 		t.Errorf("not a balanced binary tree: heights: %v\n%v\n", heights, rb)
@@ -42,7 +43,7 @@ func checkSize[K key, V val](t *testing.T, rb *TreeMap[K, V]) {
 }
 
 // cache heights to avoid recomputing the same heights, only counting black links
-func height[K key, V val](x *node[K, V], mk map[K]int) int {
+func height[K comparable, V val](x *node[K, V], mk map[K]int) int {
 	if x == nil {
 		return 0
 	}
@@ -64,7 +65,7 @@ func height[K key, V val](x *node[K, V], mk map[K]int) int {
 }
 
 // recursively check that max height of left subtree is at most 1 different from height of right
-func isConsistentSize[K key, V val](x *node[K, V], mk map[K]int) bool {
+func isConsistentSize[K comparable, V val](x *node[K, V], mk map[K]int) bool {
 	if x == nil {
 		return true
 	}
@@ -79,25 +80,25 @@ func isConsistentSize[K key, V val](x *node[K, V], mk map[K]int) bool {
 }
 
 func checkBST[K key, V val](t *testing.T, rb *TreeMap[K, V]) {
-	if !isBST(rb.root, nil, nil) {
+	if !isBST(rb, rb.root, nil, nil) {
 		t.Errorf("not a valid Binary Search Tree\n%v\n", rb)
 	}
 }
 
 // recursively check that every node is smaller or equal on left and larger or equal on right
-func isBST[K key, V val](x *node[K, V], min, max *K) bool {
+func isBST[K key, V val](rb *TreeMap[K, V], x *node[K, V], min, max *K) bool {
 	if x == nil {
 		return true
 	}
 
-	if min != nil && CompareTo(x.key, *min) <= 0 {
+	if min != nil && rb.comparator(x.key, *min) <= 0 {
 		return false
 	}
-	if max != nil && CompareTo(x.key, *max) >= 0 {
+	if max != nil && rb.comparator(x.key, *max) >= 0 {
 		return false
 	}
 
-	return isBST(x.left, min, &x.key) && isBST(x.right, &x.key, max)
+	return isBST(rb, x.left, min, &x.key) && isBST(rb, x.right, &x.key, max)
 }
 
 func checkBalancedLinks[K key, V val](t *testing.T, rb *TreeMap[K, V]) {
