@@ -21,21 +21,6 @@ const (
 	black color = false
 )
 
-// Comparator allows keys to be compared for searching.
-// should return -ve if (a < b), 0 if (a == b) , +ve if (a > b)
-type Comparator[T any] func(a, b T) int
-
-func defaultComparator[key constraints.Ordered](a, b key) int {
-	switch {
-	case a < b:
-		return -1
-	case a > b:
-		return 1
-	default:
-		return 0
-	}
-}
-
 type (
 	key   any
 	val   any
@@ -57,26 +42,41 @@ func New[K constraints.Ordered, V val]() *TreeMap[K, V] {
 }
 
 // New creates a new TreeMap using a custom comparator func.
-func NewWithComparator[K key, V val](customComparator Comparator[K]) *TreeMap[K, V] {
+func NewWithComparator[K key, V val](compareFunc Comparator[K]) *TreeMap[K, V] {
 	return &TreeMap[K, V]{
-		comparator: customComparator,
+		comparator: compareFunc,
 	}
 }
 
-type node[K key, V val] struct {
-	key    K
-	value  V
-	color  color
-	left   *node[K, V]
-	right  *node[K, V]
-	parent *node[K, V]
+// New creates a new TreeMap by passing a type that implemens the comparer interface.
+func NewWithComparableType[K key, V val](comparer Comparer[K]) *TreeMap[K, V] {
+	cm := func(a, b K) int {
+		return comparer.CompareTo(b)
+	}
+
+	return &TreeMap[K, V]{
+		comparator: cm,
+	}
 }
 
-func newNode[K key, V val](k K, v V, c color) *node[K, V] {
-	return &node[K, V]{
-		key:   k,
-		value: v,
-		color: c,
+// Comparator allows keys to be compared for searching.
+// should return -1 if (a < b), 0 if (a == b), +1 if (a > b)
+type Comparator[T any] func(a, b T) int
+
+// Comparer can be implemented to compare the key to the target.
+// should return -1 if (a < b), 0 if (a == b), +1 if (a > b)
+type Comparer[K key] interface {
+	CompareTo(target K) int
+}
+
+func defaultComparator[key constraints.Ordered](a, b key) int {
+	switch {
+	case a < b:
+		return -1
+	case a > b:
+		return 1
+	default:
+		return 0
 	}
 }
 
@@ -284,6 +284,23 @@ func (it *Iterator[K, V]) Value() V {
 	}
 
 	return it.current.value
+}
+
+type node[K key, V val] struct {
+	key    K
+	value  V
+	color  color
+	left   *node[K, V]
+	right  *node[K, V]
+	parent *node[K, V]
+}
+
+func newNode[K key, V val](k K, v V, c color) *node[K, V] {
+	return &node[K, V]{
+		key:   k,
+		value: v,
+		color: c,
+	}
 }
 
 func (n *node[K, V]) isRed() bool {
