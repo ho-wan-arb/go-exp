@@ -30,7 +30,7 @@ func TestTreeMap_InsertAndSearch(t *testing.T) {
 
 	for _, kv := range m {
 		got, ok := tr.Search(kv.k)
-		assertEqual(t, true, ok, tr)
+		assertEqual(t, true, ok)
 		assertEqual(t, kv.v, got, tr)
 	}
 
@@ -39,9 +39,43 @@ func TestTreeMap_InsertAndSearch(t *testing.T) {
 	assertEqual(t, gotKey, "")
 
 	gotLen := tr.Length()
-	assertEqual(t, len(m), gotLen, tr)
+	assertEqual(t, len(m), gotLen)
 
-	fmt.Print("visual representation of tree:", tr)
+	fmt.Print("tree:", tr)
+}
+
+func TestTreeMap_ErrorNoComparator(t *testing.T) {
+	tr, err := NewWithComparator[int, string]()
+	if err == nil {
+		t.Errorf("want error, got %v", err)
+	}
+
+	if tr != nil {
+		t.Errorf("want nil, got %v", err)
+	}
+}
+
+type user struct{ height int }
+
+func (u *user) CompareTo(target *user) int {
+	if u.height == target.height {
+		return 0
+	} else if u.height < target.height {
+		return -1
+	}
+	return 1
+}
+
+func TestTreeMap_Comparer(t *testing.T) {
+	u := &user{height: 10}
+	tr, err := NewWithComparator(WithComparer[*user, string](u))
+	assertEqual(t, nil, err)
+
+	tr.Insert(u, "a")
+
+	got, ok := tr.Search(u)
+	assertEqual(t, true, ok)
+	assertEqual(t, "a", got)
 }
 
 func TestTreeMap_CustomComparator(t *testing.T) {
@@ -67,7 +101,9 @@ func TestTreeMap_CustomComparator(t *testing.T) {
 			return 0
 		}
 	}
-	tr := NewWithComparator[string, string](sortByStringLenFunc)
+
+	tr, err := NewWithComparator(WithCompareFunc[string, string](sortByStringLenFunc))
+	assertEqual(t, nil, err)
 	for _, kv := range m {
 		tr.Insert(kv.k, kv.v)
 	}

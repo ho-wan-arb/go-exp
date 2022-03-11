@@ -10,6 +10,7 @@
 package treemap
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -34,39 +35,53 @@ type TreeMap[K key, V val] struct {
 	length     int
 }
 
-// New creates a new TreeMap using the default comparator (< and >).
+// NewWithComparator creates a new TreeMap using the default comparator (< and >).
 func New[K constraints.Ordered, V val]() *TreeMap[K, V] {
 	return &TreeMap[K, V]{
 		comparator: defaultComparator[K],
 	}
 }
 
-// New creates a new TreeMap using a custom comparator func.
-func NewWithComparator[K key, V val](compareFunc Comparator[K]) *TreeMap[K, V] {
-	return &TreeMap[K, V]{
-		comparator: compareFunc,
+// NewWithComparator creates a new TreeMap using a custom comparator
+func NewWithComparator[K key, V val](opts ...Option[K, V]) (*TreeMap[K, V], error) {
+	t := &TreeMap[K, V]{}
+
+	for _, opt := range opts {
+		opt(t)
+	}
+
+	if t.comparator == nil {
+		return nil, errors.New("must provide a valid comparator")
+	}
+
+	return t, nil
+}
+
+type Option[K key, V val] func(t *TreeMap[K, V])
+
+func WithCompareFunc[K key, V val](compareFunc Comparator[K]) func(t *TreeMap[K, V]) {
+	return func(t *TreeMap[K, V]) {
+		t.comparator = compareFunc
 	}
 }
 
-// New creates a new TreeMap by passing a type that implemens the comparer interface.
-func NewWithComparableType[K key, V val](comparer Comparer[K]) *TreeMap[K, V] {
-	cm := func(a, b K) int {
+func WithComparer[K key, V val](comparer Comparer[K]) func(t *TreeMap[K, V]) {
+	compareFunc := func(a, b K) int {
 		return comparer.CompareTo(b)
 	}
-
-	return &TreeMap[K, V]{
-		comparator: cm,
+	return func(t *TreeMap[K, V]) {
+		t.comparator = compareFunc
 	}
 }
 
 // Comparator allows keys to be compared for searching.
 // should return -1 if (a < b), 0 if (a == b), +1 if (a > b)
-type Comparator[T any] func(a, b T) int
+type Comparator[K any] func(a, b K) int
 
 // Comparer can be implemented to compare the key to the target.
 // should return -1 if (a < b), 0 if (a == b), +1 if (a > b)
 type Comparer[K key] interface {
-	CompareTo(target K) int
+	CompareTo(b K) int
 }
 
 func defaultComparator[key constraints.Ordered](a, b key) int {
