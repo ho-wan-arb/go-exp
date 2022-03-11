@@ -164,7 +164,7 @@ func (t *TreeMap[K, V]) String() string {
 	traverseByDepth(t.root, d, list)
 
 	sb := strings.Builder{}
-	sb.WriteString("----\n")
+	sb.WriteString("\n----treemap----\n")
 	for i := 1; i <= len(list); i++ {
 		sb.WriteString(fmt.Sprintf("[depth %d]:  ", i))
 		sb.WriteString(fmt.Sprintf("%v\n", strings.Join(list[i], " | ")))
