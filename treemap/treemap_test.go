@@ -23,59 +23,23 @@ func TestTreeMap_InsertAndSearch(t *testing.T) {
 		{7, "g"},
 	}
 
-	tr := New[int, string]()
+	tm := New[int, string]()
 	for _, kv := range m {
-		tr.Insert(kv.k, kv.v)
+		tm.Insert(kv.k, kv.v)
 	}
 
 	for _, kv := range m {
-		got, ok := tr.Search(kv.k)
+		got, ok := tm.Search(kv.k)
 		assertEqual(t, true, ok)
-		assertEqual(t, kv.v, got, tr)
+		assertEqual(t, kv.v, got, tm)
 	}
 
-	gotKey, ok := tr.Search(-1)
+	gotKey, ok := tm.Search(-1)
 	assertEqual(t, false, ok)
 	assertEqual(t, gotKey, "")
 
-	gotLen := tr.Length()
+	gotLen := tm.Length()
 	assertEqual(t, len(m), gotLen)
-
-	fmt.Print("tree:", tr)
-}
-
-func TestTreeMap_ErrorNoComparator(t *testing.T) {
-	tr, err := NewWithComparator[int, string]()
-	if err == nil {
-		t.Errorf("want error, got %v", err)
-	}
-
-	if tr != nil {
-		t.Errorf("want nil, got %v", err)
-	}
-}
-
-type user struct{ height int }
-
-func (u *user) CompareTo(target *user) int {
-	if u.height == target.height {
-		return 0
-	} else if u.height < target.height {
-		return -1
-	}
-	return 1
-}
-
-func TestTreeMap_Comparer(t *testing.T) {
-	u := &user{height: 10}
-	tr, err := NewWithComparator(WithComparer[*user, string](u))
-	assertEqual(t, nil, err)
-
-	tr.Insert(u, "a")
-
-	got, ok := tr.Search(u)
-	assertEqual(t, true, ok)
-	assertEqual(t, "a", got)
 }
 
 func TestTreeMap_CustomComparator(t *testing.T) {
@@ -102,14 +66,13 @@ func TestTreeMap_CustomComparator(t *testing.T) {
 		}
 	}
 
-	tr, err := NewWithComparator(WithCompareFunc[string, string](sortByStringLenFunc))
-	assertEqual(t, nil, err)
+	tm := NewWithComparator[string, string](sortByStringLenFunc)
 	for _, kv := range m {
-		tr.Insert(kv.k, kv.v)
+		tm.Insert(kv.k, kv.v)
 	}
 
 	// should - iterator returns keys by order of string length
-	it := tr.Iterator()
+	it := tm.Iterator()
 	it.Begin()
 	assertEqual(t, "b", it.Key())
 	assertEqual(t, "4", it.Value())
@@ -126,15 +89,15 @@ func TestTreeMap_CustomComparator(t *testing.T) {
 func TestTreeMap_Iterate(t *testing.T) {
 	t.Parallel()
 
-	tr := New[int, string]()
-	tr.Insert(4, "d")
-	tr.Insert(3, "c")
-	tr.Insert(1, "a")
-	tr.Insert(2, "b")
+	tm := New[int, string]()
+	tm.Insert(4, "d")
+	tm.Insert(3, "c")
+	tm.Insert(1, "a")
+	tm.Insert(2, "b")
 
-	it := tr.Iterator()
+	it := tm.Iterator()
 	it.Begin()
-	assertEqual(t, "a", it.Value(), tr)
+	assertEqual(t, "a", it.Value(), tm)
 
 	// in-order traversal
 	ok := it.Next()

@@ -10,7 +10,6 @@
 package treemap
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -43,46 +42,15 @@ func New[K constraints.Ordered, V val]() *TreeMap[K, V] {
 }
 
 // NewWithComparator creates a new TreeMap using a custom comparator
-func NewWithComparator[K key, V val](opts ...Option[K, V]) (*TreeMap[K, V], error) {
-	t := &TreeMap[K, V]{}
-
-	for _, opt := range opts {
-		opt(t)
-	}
-
-	if t.comparator == nil {
-		return nil, errors.New("must provide a valid comparator")
-	}
-
-	return t, nil
-}
-
-type Option[K key, V val] func(t *TreeMap[K, V])
-
-func WithCompareFunc[K key, V val](compareFunc Comparator[K]) func(t *TreeMap[K, V]) {
-	return func(t *TreeMap[K, V]) {
-		t.comparator = compareFunc
-	}
-}
-
-func WithComparer[K key, V val](comparer Comparer[K]) func(t *TreeMap[K, V]) {
-	compareFunc := func(a, b K) int {
-		return comparer.CompareTo(b)
-	}
-	return func(t *TreeMap[K, V]) {
-		t.comparator = compareFunc
+func NewWithComparator[K key, V val](compareFunc Comparator[K]) *TreeMap[K, V] {
+	return &TreeMap[K, V]{
+		comparator: compareFunc,
 	}
 }
 
 // Comparator allows keys to be compared for searching.
 // should return -1 if (a < b), 0 if (a == b), +1 if (a > b)
 type Comparator[K any] func(a, b K) int
-
-// Comparer can be implemented to compare the key to the target.
-// should return -1 if (a < b), 0 if (a == b), +1 if (a > b)
-type Comparer[K key] interface {
-	CompareTo(b K) int
-}
 
 func defaultComparator[key constraints.Ordered](a, b key) int {
 	switch {
@@ -237,18 +205,12 @@ func (it *Iterator[K, V]) Next() bool {
 	}
 
 	// left subtree processed, backtrack up to right only
-	for cur == cur.parent.right {
+	for cur.parent != nil && cur == cur.parent.right {
 		cur = cur.parent
-
-		if cur.parent == nil {
-			// all nodes visited, reached up to parent of root which is nil
-			it.current = nil
-			return false
-		}
 	}
 
 	it.current = cur.parent
-	return true
+	return it.current != nil
 }
 
 // Prev does an in-order traversal through a binary search tree in reverse.
@@ -270,17 +232,12 @@ func (it *Iterator[K, V]) Prev() bool {
 		return true
 	}
 
-	for cur == cur.parent.left {
+	for cur.parent != nil && cur == cur.parent.left {
 		cur = cur.parent
-
-		if cur.parent == nil {
-			it.current = nil
-			return false
-		}
 	}
 
 	it.current = cur.parent
-	return true
+	return it.current != nil
 }
 
 // Key returns the key at the current position of iterator and returns the zero value if nil.
