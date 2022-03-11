@@ -1,10 +1,13 @@
-package treemap
-
-// An implmentation of a treemap backed by a left-leaning red-black 2-3 binary search tree (LLRB BST).
+// Package treemap implements a generic treemap backed by a Binary Search Tree.
+// The treemap can be traversed in sorted order of keys using the Iterator.
+// A custom comparator function can be used when initializing the treemap.
+// Generics require go version > 1.18 to be used.
 //
+// A Left-Leaning 2-3 Red-Black (LLRB) tree is used as the self-balancing Binary Search Tree (BST).
 // References:
 //   https://sedgewick.io/wp-content/themes/sedgewick/papers/2008LLRB.pdf
 //   https://algs4.cs.princeton.edu/code/edu/princeton/cs/algs4/RedBlackBST.java
+package treemap
 
 import (
 	"fmt"
@@ -143,53 +146,6 @@ func (t *TreeMap[K, V]) Search(key K) (V, bool) {
 	return *new(V), false
 }
 
-// Iterator returns a new iterator and starts at the first element.
-func (t *TreeMap[K, V]) Iterator() *Iterator[K, V] {
-	cur := t.root
-	for cur.left != nil {
-		cur = cur.left
-	}
-
-	return &Iterator[K, V]{
-		tree:    t,
-		current: cur,
-	}
-}
-
-// Begin moves iterator in front of first element.
-func (t *TreeMap[K, V]) Begin() *Iterator[K, V] {
-	cur := t.root
-	for cur.left != nil {
-		cur = cur.left
-	}
-
-	return &Iterator[K, V]{
-		tree:    t,
-		current: cur,
-	}
-}
-
-// Last moves iterator in front of the last element.
-func (t *TreeMap[K, V]) Last() *Iterator[K, V] {
-	cur := t.root
-	for cur.right != nil {
-		cur = cur.right
-	}
-
-	return &Iterator[K, V]{
-		tree:    t,
-		current: cur,
-	}
-}
-
-// End moves iterator to behind the last element.
-func (t *TreeMap[K, V]) End() *Iterator[K, V] {
-	return &Iterator[K, V]{
-		tree:    t,
-		current: nil,
-	}
-}
-
 // String prints the tree in a visual format row by row.
 func (t *TreeMap[K, V]) String() string {
 	d := 0
@@ -206,17 +162,51 @@ func (t *TreeMap[K, V]) String() string {
 	return sb.String()
 }
 
+// Iterator returns a new iterator and starts at the first element.
+func (t *TreeMap[K, V]) Iterator() *Iterator[K, V] {
+	it := &Iterator[K, V]{tree: t}
+
+	it.Begin()
+
+	return it
+}
+
+// Iterator traverses through the treemap in sorted order.
 type Iterator[K key, V val] struct {
 	tree    *TreeMap[K, V]
 	current *node[K, V]
+}
+
+// Begin moves iterator in front of first element.
+func (it *Iterator[K, V]) Begin() {
+	cur := it.tree.root
+	for cur.left != nil {
+		cur = cur.left
+	}
+
+	it.current = cur
+}
+
+// Last moves iterator in front of the last element.
+func (it *Iterator[K, V]) Last() {
+	cur := it.tree.root
+	for cur.right != nil {
+		cur = cur.right
+	}
+
+	it.current = cur
+}
+
+// End moves iterator to behind the last element.
+func (it *Iterator[K, V]) End() {
+	it.current = nil
 }
 
 // Next does an in-order traversal through a binary search tree.
 func (it *Iterator[K, V]) Next() bool {
 	cur := it.current
 	if cur == nil {
-		begin := it.tree.Begin()
-		it.current = begin.current
+		it.Begin()
 		return true
 	}
 
@@ -251,8 +241,7 @@ func (it *Iterator[K, V]) Prev() bool {
 	// steps are just the reverse of forward traversal
 	cur := it.current
 	if cur == nil {
-		begin := it.tree.Last()
-		it.current = begin.current
+		it.Last()
 		return true
 	}
 

@@ -66,7 +66,8 @@ func TestTreeMap_CustomComparator(t *testing.T) {
 	}
 
 	// should - iterator returns keys by order of string length
-	it := tr.Begin()
+	it := tr.Iterator()
+	it.Begin()
 	assertEqual(t, "b", it.Key())
 
 	ok := it.Next()
@@ -87,7 +88,8 @@ func TestTreeMap_Iterate(t *testing.T) {
 	tr.Insert(1, "a")
 	tr.Insert(2, "b")
 
-	it := tr.Begin()
+	it := tr.Iterator()
+	it.Begin()
 	assertEqual(t, "a", it.Value(), tr)
 
 	// in-order traversal
@@ -109,10 +111,10 @@ func TestTreeMap_Iterate(t *testing.T) {
 	// default to zero value if at end
 	assertEqual(t, "a", it.Value())
 
-	it = tr.Last()
+	it.Last()
 	assertEqual(t, "d", it.Value())
 
-	it = tr.End()
+	it.End()
 	assertEqual(t, "", it.Value())
 
 	// in-order traversal in revesse

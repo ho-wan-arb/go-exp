@@ -21,10 +21,13 @@ alias go=go1.18rc1
 
 - Example use of generics from: https://go.dev/doc/tutorial/generics
 
-## LLRB tree
+## TreeMap
 
-Implementation of a Left-Leaning 2-3 Red-Black tree with generics.
-This is a self balancing Binary Search Tree (BST).
+A Generic treemap backed by a balanced Binary Search Tree (BST).
+The treemap can be traversed in sorted order of keys using the Iterator.
+A custom comparator function can be used when initializing the treemap.
+
+This uses a Left-Leaning 2-3 Red-Black tree.
 
 Key properties:
 - Red links can 'glue' 2 nodes together, which have 3 children (hence 2-3 tree).
