@@ -1,6 +1,6 @@
-package rbtree
+package treemap
 
-// An implmentation of the left-leaning red-black 2-3 binary search tree (LLRB BST).
+// An implmentation of a treemap backed by a left-leaning red-black 2-3 binary search tree (LLRB BST).
 //
 // References:
 //   https://sedgewick.io/wp-content/themes/sedgewick/papers/2008LLRB.pdf
@@ -14,50 +14,45 @@ import (
 )
 
 const (
-	COLOR_RED   color = true
-	COLOR_BLACK color = false
+	red   color = true
+	black color = false
 )
-
-type color bool
 
 type (
-	Key   constraints.Ordered
-	Value any
+	key   constraints.Ordered
+	val   any
+	color bool
 )
 
-type Iterator[K Key, V Value] struct {
-	tree    *RBTree[K, V]
-	current *RBNode[K, V]
+// TreeMap holds a binary search tree that can be used as a map.
+type TreeMap[K key, V val] struct {
+	root *node[K, V]
 }
 
-type RBNode[K Key, V Value] struct {
+// New creates an empty instance of a TreeMap.
+func New[K key, V val]() *TreeMap[K, V] {
+	return &TreeMap[K, V]{}
+}
+
+type node[K key, V val] struct {
 	key    K
 	value  V
-	left   *RBNode[K, V]
-	right  *RBNode[K, V]
-	parent *RBNode[K, V]
 	color  color
+	left   *node[K, V]
+	right  *node[K, V]
+	parent *node[K, V]
 }
 
-func newNode[K Key, V Value](key K, val V, clr color) *RBNode[K, V] {
-	return &RBNode[K, V]{
-		key:   key,
-		value: val,
-		color: clr,
+func newNode[K key, V val](k K, v V, c color) *node[K, V] {
+	return &node[K, V]{
+		key:   k,
+		value: v,
+		color: c,
 	}
 }
 
-type RBTree[K Key, V Value] struct {
-	root *RBNode[K, V]
-}
-
-// New creates an empty instance of a Left-Leaning Red-Black BST.
-func New[K Key, V Value]() *RBTree[K, V] {
-	return &RBTree[K, V]{}
-}
-
 // CompareTo returns > 0 if source is greater than target
-func CompareTo[K Key](source, target K) int {
+func CompareTo[K key](source, target K) int {
 	if source > target {
 		return 1
 	}
@@ -69,16 +64,16 @@ func CompareTo[K Key](source, target K) int {
 }
 
 // Insert a new element
-func (t *RBTree[K, V]) Insert(key K, val V) {
+func (t *TreeMap[K, V]) Insert(key K, val V) {
 	t.root = t.insert(t.root, key, val)
-	t.root.color = COLOR_BLACK
+	t.root.color = black
 }
 
 // insert will recursively traverse down the tree and insert new node at leaf or
 // update the value if key exists, then fix by doing rotation or color flip
-func (t *RBTree[K, V]) insert(cur *RBNode[K, V], key K, val V) *RBNode[K, V] {
+func (t *TreeMap[K, V]) insert(cur *node[K, V], key K, val V) *node[K, V] {
 	if cur == nil {
-		cur = newNode(key, val, COLOR_RED)
+		cur = newNode(key, val, red)
 		return cur
 	}
 
@@ -109,7 +104,7 @@ func (t *RBTree[K, V]) insert(cur *RBNode[K, V], key K, val V) *RBNode[K, V] {
 }
 
 // Search by key and returns value, or the zero value of type V if not found
-func (t *RBTree[K, V]) Search(key K) (V, bool) {
+func (t *TreeMap[K, V]) Search(key K) (V, bool) {
 	cur := t.root
 	for cur != nil {
 		c := CompareTo(key, cur.key)
@@ -128,11 +123,8 @@ func (t *RBTree[K, V]) Search(key K) (V, bool) {
 	return *new(V), false
 }
 
-func (t *RBTree[K, V]) Delete() {
-	// TODO
-}
-
-func (t *RBTree[K, V]) Begin() *Iterator[K, V] {
+// Begin moves iterator in front of first element.
+func (t *TreeMap[K, V]) Begin() *Iterator[K, V] {
 	cur := t.root
 	for cur.left != nil {
 		cur = cur.left
@@ -144,8 +136,8 @@ func (t *RBTree[K, V]) Begin() *Iterator[K, V] {
 	}
 }
 
-// End moves to one past the last element.
-func (t *RBTree[K, V]) Last() *Iterator[K, V] {
+// Last moves iterator in front of the last element.
+func (t *TreeMap[K, V]) Last() *Iterator[K, V] {
 	cur := t.root
 	for cur.right != nil {
 		cur = cur.right
@@ -157,8 +149,8 @@ func (t *RBTree[K, V]) Last() *Iterator[K, V] {
 	}
 }
 
-// End moves to one past the last element.
-func (t *RBTree[K, V]) End() *Iterator[K, V] {
+// End moves iterator to behind the last element.
+func (t *TreeMap[K, V]) End() *Iterator[K, V] {
 	return &Iterator[K, V]{
 		tree:    t,
 		current: nil,
@@ -166,10 +158,10 @@ func (t *RBTree[K, V]) End() *Iterator[K, V] {
 }
 
 // String prints the tree in a visual format row by row.
-func (rb *RBTree[K, V]) String() string {
+func (t *TreeMap[K, V]) String() string {
 	d := 0
 	list := map[int][]string{}
-	traverseByDepth(rb.root, d, list)
+	traverseByDepth(t.root, d, list)
 
 	sb := strings.Builder{}
 	sb.WriteString("----\n")
@@ -181,6 +173,11 @@ func (rb *RBTree[K, V]) String() string {
 	return sb.String()
 }
 
+type Iterator[K key, V val] struct {
+	tree    *TreeMap[K, V]
+	current *node[K, V]
+}
+
 // Next does an in-order traversal through a binary search tree.
 func (it *Iterator[K, V]) Next() bool {
 	cur := it.current
@@ -190,11 +187,10 @@ func (it *Iterator[K, V]) Next() bool {
 		return true
 	}
 
+	// try to go one step right then all the way to left
 	if cur.right != nil {
-		// one step right
 		cur = cur.right
 
-		// then down to furthest left
 		for cur.left != nil {
 			cur = cur.left
 		}
@@ -217,8 +213,9 @@ func (it *Iterator[K, V]) Next() bool {
 	return true
 }
 
-// Next does an in-order traversal through a binary search tree in reverse.
+// Prev does an in-order traversal through a binary search tree in reverse.
 func (it *Iterator[K, V]) Prev() bool {
+	// steps are just the reverse of forward traversal
 	cur := it.current
 	if cur == nil {
 		begin := it.tree.Last()
@@ -227,10 +224,8 @@ func (it *Iterator[K, V]) Prev() bool {
 	}
 
 	if cur.left != nil {
-		// one step right
 		cur = cur.left
 
-		// then down to furthest right
 		for cur.right != nil {
 			cur = cur.right
 		}
@@ -238,12 +233,10 @@ func (it *Iterator[K, V]) Prev() bool {
 		return true
 	}
 
-	// right subtree processed, backtrack up to left only
 	for cur == cur.parent.left {
 		cur = cur.parent
 
 		if cur.parent == nil {
-			// all nodes visited, reached up to parent of root which is nil
 			it.current = nil
 			return false
 		}
@@ -253,32 +246,32 @@ func (it *Iterator[K, V]) Prev() bool {
 	return true
 }
 
+// Key returns the key at the current position of iterator and returns the zero value if nil.
 func (it *Iterator[K, V]) Key() K {
 	if it.current == nil {
-		// deference and return zero value
 		return *new(K)
 	}
 
 	return it.current.key
 }
 
+// Key returns the key at the current position of iterator and returns the zero value if nil.
 func (it *Iterator[K, V]) Value() V {
 	if it.current == nil {
-		// deference and return zero value
 		return *new(V)
 	}
 
 	return it.current.value
 }
 
-func (n *RBNode[K, V]) isRed() bool {
+func (n *node[K, V]) isRed() bool {
 	if n == nil {
 		return false
 	}
 	return bool(n.color)
 }
 
-func (n *RBNode[K, V]) rotateLeft() *RBNode[K, V] {
+func (n *node[K, V]) rotateLeft() *node[K, V] {
 	cur := n.right
 	cur.parent = n.parent
 
@@ -293,11 +286,11 @@ func (n *RBNode[K, V]) rotateLeft() *RBNode[K, V] {
 	}
 
 	cur.color = cur.left.color
-	cur.left.color = COLOR_RED
+	cur.left.color = red
 	return cur
 }
 
-func (n *RBNode[K, V]) rotateRight() *RBNode[K, V] {
+func (n *node[K, V]) rotateRight() *node[K, V] {
 	cur := n.left
 	n.left = cur.right
 	if n.left != nil {
@@ -311,17 +304,17 @@ func (n *RBNode[K, V]) rotateRight() *RBNode[K, V] {
 	}
 
 	cur.color = cur.right.color
-	cur.right.color = COLOR_RED
+	cur.right.color = red
 	return cur
 }
 
-func (n *RBNode[K, V]) flipColors() {
+func (n *node[K, V]) flipColors() {
 	n.color = !n.color
 	n.left.color = !n.left.color
 	n.right.color = !n.right.color
 }
 
-func traverseByDepth[K Key, V Value](cur *RBNode[K, V], d int, list map[int][]string) {
+func traverseByDepth[K key, V val](cur *node[K, V], d int, list map[int][]string) {
 	if cur == nil {
 		return
 	}

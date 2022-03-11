@@ -1,4 +1,4 @@
-package rbtree
+package treemap
 
 import (
 	"fmt"
@@ -117,14 +117,14 @@ func TestBSTree_Iterate(t *testing.T) {
 }
 
 // Check validity of red-black binary search tree
-func (rb *RBTree[K, V]) validateTree(t *testing.T) {
+func (rb *TreeMap[K, V]) validateTree(t *testing.T) {
 	checkBST(t, rb)
 	checkBalancedLinks(t, rb)
 	checkSize(t, rb)
 	check23Tree(t, rb)
 }
 
-func checkSize[K Key, V Value](t *testing.T, rb *RBTree[K, V]) {
+func checkSize[K key, V val](t *testing.T, rb *TreeMap[K, V]) {
 	heights := map[K]int{}
 	if !isConsistentSize(rb.root, heights) {
 		t.Errorf("not a balanced binary tree: heights: %v\n%v\n", heights, rb)
@@ -132,7 +132,7 @@ func checkSize[K Key, V Value](t *testing.T, rb *RBTree[K, V]) {
 }
 
 // cache heights to avoid recomputing the same heights, only counting black links
-func height[K Key, V Value](x *RBNode[K, V], mk map[K]int) int {
+func height[K key, V val](x *node[K, V], mk map[K]int) int {
 	if x == nil {
 		return 0
 	}
@@ -154,7 +154,7 @@ func height[K Key, V Value](x *RBNode[K, V], mk map[K]int) int {
 }
 
 // recursively check that max height of left subtree is at most 1 different from height of right
-func isConsistentSize[K Key, V Value](x *RBNode[K, V], mk map[K]int) bool {
+func isConsistentSize[K key, V val](x *node[K, V], mk map[K]int) bool {
 	if x == nil {
 		return true
 	}
@@ -170,14 +170,14 @@ func isConsistentSize[K Key, V Value](x *RBNode[K, V], mk map[K]int) bool {
 	return isConsistentSize(x.left, mk) && isConsistentSize(x.right, mk)
 }
 
-func checkBST[K Key, V Value](t *testing.T, rb *RBTree[K, V]) {
+func checkBST[K key, V val](t *testing.T, rb *TreeMap[K, V]) {
 	if !isBST(rb.root, nil, nil) {
 		t.Errorf("not a valid Binary Search Tree\n%v\n", rb)
 	}
 }
 
 // recursively check that every node is smaller or equal on left and larger or equal on right
-func isBST[K Key, V Value](x *RBNode[K, V], min, max *K) bool {
+func isBST[K key, V val](x *node[K, V], min, max *K) bool {
 	if x == nil {
 		return true
 	}
@@ -192,7 +192,7 @@ func isBST[K Key, V Value](x *RBNode[K, V], min, max *K) bool {
 	return isBST(x.left, min, &x.key) && isBST(x.right, &x.key, max)
 }
 
-func checkBalancedLinks[K Key, V Value](t *testing.T, rb *RBTree[K, V]) {
+func checkBalancedLinks[K key, V val](t *testing.T, rb *TreeMap[K, V]) {
 	// count black links from root to left most leaf
 	black := 0
 	x := rb.root
@@ -210,7 +210,7 @@ func checkBalancedLinks[K Key, V Value](t *testing.T, rb *RBTree[K, V]) {
 }
 
 // recursively check that every leaf has the same count of black links
-func isBalanced[K Key, V Value](x *RBNode[K, V], black int) bool {
+func isBalanced[K key, V val](x *node[K, V], black int) bool {
 	if x == nil {
 		return black == 0
 	}
@@ -222,14 +222,14 @@ func isBalanced[K Key, V Value](x *RBNode[K, V], black int) bool {
 	return isBalanced(x.left, black) && isBalanced(x.right, black)
 }
 
-func check23Tree[K Key, V Value](t *testing.T, rb *RBTree[K, V]) {
+func check23Tree[K key, V val](t *testing.T, rb *TreeMap[K, V]) {
 	if !is23Tree(rb.root) {
 		t.Errorf("not a valid 23 Tree\n%v\n", rb)
 	}
 }
 
 // cannot have red right link, or 2 left red links in a row
-func is23Tree[K Key, V Value](x *RBNode[K, V]) bool {
+func is23Tree[K key, V val](x *node[K, V]) bool {
 	if x == nil {
 		return true
 	}
